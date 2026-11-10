@@ -37,6 +37,7 @@ struct _lv_draw_sw_blend_dsc_t {
     const void * src_buf;           /**< Pointer to an image to blend. If set `fill_color` is ignored */
     uint32_t src_stride;
     lv_color_format_t src_color_format;
+    const lv_color32_t * palette;   /**< Palette for an indexed `src_buf`. NULL for other formats */
     const lv_area_t * src_area;
     lv_opa_t opa;                   /**< The overall opacity*/
     lv_color_t color;               /**< Fill color*/
@@ -69,6 +70,8 @@ struct _lv_draw_sw_blend_image_dsc_t {
     const void * src_buf;
     int32_t src_stride;
     lv_color_format_t src_color_format;
+    const lv_color32_t * palette;   /**< Palette for an indexed `src_buf`. NULL for other formats */
+    int32_t src_x_offset;           /**< Pixels to skip in the first byte of an indexed source row */
     lv_opa_t opa;
     lv_blend_mode_t blend_mode;
     lv_area_t relative_area;    /**< The blend area relative to the layer's buffer area. */
@@ -252,6 +255,19 @@ static inline lv_color32_t LV_ATTRIBUTE_FAST_MEM lv_color_mix32_premultiplied_in
     bg.green = (uint8_t)(fg.green + (((uint32_t)bg.green * mix_inv) >> 8));
     bg.blue = (uint8_t)(fg.blue + (((uint32_t)bg.blue * mix_inv) >> 8));
     return bg;
+}
+
+/**
+ * Read one pixel of an indexed image. Indices are packed MSB first in each byte.
+ * @param row       the first byte of the row that holds the pixel
+ * @param x         x offset in pixels from the start of `row`
+ * @param bpp       bits per pixel, 1, 2, 4 or 8
+ * @return          the palette index
+ */
+static inline uint8_t LV_ATTRIBUTE_FAST_MEM lv_color_indexed_get(const uint8_t * row, int32_t x, uint8_t bpp)
+{
+    uint32_t bit = (uint32_t)x * bpp;
+    return (uint8_t)((row[bit >> 3] >> (8 - bpp - (bit & 7))) & ((1u << bpp) - 1));
 }
 
 #endif /* LV_USE_DRAW_SW */

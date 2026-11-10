@@ -44,6 +44,8 @@ typedef struct {
     static inline uint8_t /* LV_ATTRIBUTE_FAST_MEM */ get_bit(const uint8_t * buf, int32_t bit_idx);
 #endif
 
+static void /* LV_ATTRIBUTE_FAST_MEM */ indexed_image_blend(lv_draw_sw_blend_image_dsc_t * dsc);
+
 #if LV_DRAW_SW_SUPPORT_L8
     static void /* LV_ATTRIBUTE_FAST_MEM */ l8_image_blend(lv_draw_sw_blend_image_dsc_t * dsc);
 #endif
@@ -440,9 +442,15 @@ void LV_ATTRIBUTE_FAST_MEM lv_draw_sw_blend_image_to_argb8888(lv_draw_sw_blend_i
 #endif
 #if LV_DRAW_SW_SUPPORT_I1
         case LV_COLOR_FORMAT_I1:
-            i1_image_blend(dsc);
+            if(dsc->palette) indexed_image_blend(dsc);
+            else i1_image_blend(dsc);
             break;
 #endif
+        case LV_COLOR_FORMAT_I2:
+        case LV_COLOR_FORMAT_I4:
+        case LV_COLOR_FORMAT_I8:
+            indexed_image_blend(dsc);
+            break;
         default:
             LV_LOG_WARN("Not supported source color format 0x%02X", dsc->src_color_format);
             break;
@@ -640,6 +648,54 @@ static void LV_ATTRIBUTE_FAST_MEM al88_image_blend(lv_draw_sw_blend_image_dsc_t 
 }
 
 #endif
+
+static void LV_ATTRIBUTE_FAST_MEM indexed_image_blend(lv_draw_sw_blend_image_dsc_t * dsc)
+{
+    if(dsc->palette == NULL) {
+        LV_LOG_WARN("Indexed image without a palette");
+        return;
+    }
+
+    int32_t w = dsc->dest_w;
+    int32_t h = dsc->dest_h;
+    lv_opa_t opa = dsc->opa;
+    lv_color32_t * dest_buf_c32 = dsc->dest_buf;
+    int32_t dest_stride = dsc->dest_stride;
+    const uint8_t * src_buf = dsc->src_buf;
+    int32_t src_stride = dsc->src_stride;
+    const lv_opa_t * mask_buf = dsc->mask_buf;
+    int32_t mask_stride = dsc->mask_stride;
+    const lv_color32_t * palette = dsc->palette;
+    uint8_t bpp = lv_color_format_get_bpp(dsc->src_color_format);
+    int32_t src_x_offset = dsc->src_x_offset;
+
+    lv_color_mix_alpha_cache_t cache;
+    lv_color_mix_with_alpha_cache_init(&cache);
+
+    for(int32_t y = 0; y < h; y++) {
+        for(int32_t dest_x = 0; dest_x < w; dest_x++) {
+            lv_color32_t src = palette[lv_color_indexed_get(src_buf, src_x_offset + dest_x, bpp)];
+            if(src.alpha <= LV_OPA_MIN) continue;
+
+            lv_opa_t a = src.alpha;
+            if(mask_buf) a = LV_OPA_MIX2(a, mask_buf[dest_x]);
+            if(opa < LV_OPA_MAX) a = LV_OPA_MIX2(a, opa);
+            if(a <= LV_OPA_MIN) continue;
+            src.alpha = a;
+
+            if(dsc->blend_mode == LV_BLEND_MODE_NORMAL) {
+                dest_buf_c32[dest_x] = lv_color_32_32_mix(src, dest_buf_c32[dest_x], &cache);
+            }
+            else {
+                blend_non_normal_pixel(&dest_buf_c32[dest_x], src, dsc->blend_mode, &cache);
+            }
+        }
+
+        dest_buf_c32 = drawbuf_next_row(dest_buf_c32, dest_stride);
+        src_buf = drawbuf_next_row(src_buf, src_stride);
+        if(mask_buf) mask_buf += mask_stride;
+    }
+}
 
 #if LV_DRAW_SW_SUPPORT_L8
 

@@ -266,7 +266,15 @@ lv_result_t lv_bin_decoder_open(lv_image_decoder_t * decoder, lv_image_decoder_d
                 return LV_RESULT_INVALID;
             }
 
-            if(dsc->args.use_indexed) {
+            if(image->header.flags & LV_IMAGE_FLAGS_PALETTE_EXTERNAL) {
+                /*The palette is kept by the caller, so the indexed pixels can be used as
+                 *they are. The palette travels with the decoder descriptor to the draw unit.*/
+                dsc->palette = image->palette;
+                dsc->palette_size = LV_COLOR_INDEXED_PALETTE_SIZE(cf);
+                res = load_indexed(decoder, dsc);
+                use_directly = true;
+            }
+            else if(dsc->args.use_indexed) {
                 /*Palette for indexed image and whole image of A8 image are always loaded to RAM for simplicity*/
                 res = load_indexed(decoder, dsc);
                 use_directly = true; /*If draw unit supports indexed image, it can be used directly.*/
@@ -695,6 +703,27 @@ exit_with_buf:
 
 static lv_result_t load_indexed(lv_image_decoder_t * decoder, lv_image_decoder_dsc_t * dsc)
 {
+    /*An external palette image is already a complete index map, so it can be used in place
+     *without reading or converting anything, even when RAM loading is disabled.*/
+    if(dsc->src_type == LV_IMAGE_SRC_VARIABLE &&
+       (dsc->header.flags & LV_IMAGE_FLAGS_PALETTE_EXTERNAL)) {
+        lv_image_dsc_t * image = (lv_image_dsc_t *)dsc->src;
+        decoder_data_t * decoder_data = dsc->user_data;
+        if(decoder_data == NULL) {
+            return LV_RESULT_INVALID;
+        }
+        lv_draw_buf_t * decoded = &decoder_data->c_array;
+        lv_result_t result = lv_draw_buf_from_image(decoded, image);
+        if(result != LV_RESULT_OK) {
+            return result;
+        }
+        dsc->decoded = decoded;
+        if(decoded->header.stride == 0) {
+            decoded->header.stride = dsc->header.stride;
+        }
+        return LV_RESULT_OK;
+    }
+
 #if LV_BIN_DECODER_RAM_LOAD == 0
     LV_UNUSED(decoder); /*Unused*/
     LV_UNUSED(dsc); /*Unused*/

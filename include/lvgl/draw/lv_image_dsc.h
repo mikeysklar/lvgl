@@ -77,6 +77,14 @@ typedef enum _lvimage_flags_t {
     LV_IMAGE_FLAGS_CUSTOM_DRAW      = 0x0040,
 
     /**
+     * The palette of an indexed image is not stored in front of its pixel data.
+     * It is available separately through `lv_image_dsc_t.palette`, so the pixel
+     * data contains only the indices. This lets a palette and a bitmap be
+     * combined without copying either of them.
+     */
+    LV_IMAGE_FLAGS_PALETTE_EXTERNAL = 0x0080,
+
+    /**
      * Flags reserved for user, lvgl won't use these bits.
      */
     LV_IMAGE_FLAGS_USER1            = 0x0100,
@@ -145,7 +153,10 @@ typedef struct {
     uint32_t data_size;         /**< Size of the image in bytes*/
     const uint8_t * data;       /**< Pointer to the data of the image*/
     const void * reserved;      /**< A reserved field to make it has same size as lv_draw_buf_t*/
-    const void * reserved_2;    /**< A reserved field to make it has same size as lv_draw_buf_t*/
+    /** Palette of an indexed image whose pixels are stored without it.
+     * Only used when `LV_IMAGE_FLAGS_PALETTE_EXTERNAL` is set. It must have
+     * `LV_COLOR_INDEXED_PALETTE_SIZE(header.cf)` entries. */
+    const lv_color32_t * palette;
 } lv_image_dsc_t;
 
 /**********************

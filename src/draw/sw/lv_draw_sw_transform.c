@@ -227,8 +227,13 @@ void lv_draw_sw_transform(const lv_area_t * dest_area, const void * src_buf,
 
     int64_t xin0 = -(int64_t)tr_dsc.pivot.x;
     int64_t yin0 = -(int64_t)tr_dsc.pivot.y;
-    int32_t x0_ups = (int32_t)(((cosma * xin0 - sinma * yin0) * 64) / tr_dsc.scale_x) + tr_dsc.pivot_x_256 + 0x80;
-    int32_t y0_ups = (int32_t)(((sinma * xin0 + cosma * yin0) * 64) / tr_dsc.scale_y) + tr_dsc.pivot_y_256 + 0x80;
+    /*Nearest neighbour (antialias off) must sample the source pixel's top left corner, not
+     *its centre. The extra half pixel used for interpolation makes integer scalings
+     *inexact: at 200% the first source pixel gets one destination pixel instead of two and
+     *the next source pixel bleeds into the last destination column.*/
+    int32_t half_px_ups = aa ? 0x80 : 0;
+    int32_t x0_ups = (int32_t)(((cosma * xin0 - sinma * yin0) * 64) / tr_dsc.scale_x) + tr_dsc.pivot_x_256 + half_px_ups;
+    int32_t y0_ups = (int32_t)(((sinma * xin0 + cosma * yin0) * 64) / tr_dsc.scale_y) + tr_dsc.pivot_y_256 + half_px_ups;
 
     /*If scaled only, keep the source coordinates inside the image to avoid
      *fading out the last column/row due to the rounding of the steps.

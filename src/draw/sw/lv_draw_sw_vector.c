@@ -407,6 +407,8 @@ static void _blend_draw_buf(lv_draw_buf_t * draw_buf, const lv_area_t * dst_area
 
     fill_dsc.mask_buf = NULL;
     fill_dsc.mask_stride = 0;
+    fill_dsc.palette = NULL;
+    fill_dsc.src_x_offset = 0;
 
     fill_dsc.relative_area = *dst_area;
     fill_dsc.src_area  = *src_area;

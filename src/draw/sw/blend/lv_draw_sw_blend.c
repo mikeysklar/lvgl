@@ -135,12 +135,17 @@ void lv_draw_sw_blend(lv_draw_task_t * t, const lv_draw_sw_blend_dsc_t * dsc)
         image_dsc.blend_mode = dsc->blend_mode;
         image_dsc.src_stride = dsc->src_stride;
         image_dsc.src_color_format = dsc->src_color_format;
+        image_dsc.palette = dsc->palette;
 
         const uint8_t * src_buf = dsc->src_buf;
-        uint32_t src_px_size = lv_color_format_get_bpp(dsc->src_color_format);
+        uint32_t src_bpp = lv_color_format_get_bpp(dsc->src_color_format);
+        int32_t src_dx = blend_area.x1 - dsc->src_area->x1;
         src_buf += image_dsc.src_stride * (blend_area.y1 - dsc->src_area->y1);
-        src_buf += ((blend_area.x1 - dsc->src_area->x1) * src_px_size) >> 3;
+        src_buf += ((uint32_t)src_dx * src_bpp) >> 3;
         image_dsc.src_buf = src_buf;
+        /*The byte above can hold several pixels. Indexed blending has to skip the pixels
+         *before `blend_area.x1` inside it.*/
+        image_dsc.src_x_offset = src_bpp < 8 ? (((uint32_t)src_dx * src_bpp) & 7) / src_bpp : 0;
         image_dsc.mask_stride = 0;
 
         if(dsc->mask_buf == NULL) image_dsc.mask_buf = NULL;

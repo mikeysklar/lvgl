@@ -1,6 +1,13 @@
 # Generated file. DO NOT EDIT!
 
 menu "LVGL"
+
+# Zephyr's LVGL module Kconfig declares this without a prompt or a default. LVGL
+# 9.5 used to provide the default, so keep it here.
+config LV_ATTRIBUTE_MEM_ALIGN_SIZE
+	int
+	default 1
+
 menu "Memory and Standard Library"
 
 config LV_STDLIB_BUILTIN
@@ -296,7 +303,10 @@ menu "Color Settings"
 			imply LV_FONT_MONTSERRAT_14
 	endchoice
 
-	choice LV_COLOR_DEPTH_CHOICE
+	# CircuitPython: keep the 9.5 choice name so that Zephyr's own LVGL module
+	# Kconfig, which still calls it LV_COLOR_DEPTH, merges with this choice
+	# instead of defining the depth symbols in a second choice.
+	choice LV_COLOR_DEPTH
 		prompt "Color depth [DEPRECATED: Use LV_COLOR_FORMAT_DEFAULT]"
 		default LV_COLOR_DEPTH_UNSET
 		config LV_COLOR_DEPTH_UNSET
@@ -1614,7 +1624,10 @@ endchoice
 
 config LV_TXT_BREAK_CHARS
 	string "Characters to break (wrap) text on"
-	default " ,.;:-_)]}"
+	# Zephyr's .config importer can't handle ';' or '[' / ']' in a value, so the
+	# Kconfig default leaves them out. The C fallback in lv_conf_internal.h keeps
+	# the full set for non-Kconfig builds.
+	default " ,.:-_)}"
 
 config LV_TXT_LINE_BREAK_LONG_LEN
 	int "Line break long length"

@@ -230,6 +230,8 @@ static void img_draw_core(lv_draw_task_t * t, const lv_draw_image_dsc_t * draw_d
     blend_dsc.opa = draw_dsc->opa;
     blend_dsc.blend_mode = draw_dsc->blend_mode;
     blend_dsc.src_stride = img_stride;
+    /*Indexed images keep their palette outside of the pixel data.*/
+    blend_dsc.palette = sup->palette;
 
     if(!transformed && !radius && cf == LV_COLOR_FORMAT_A8) {
         lv_area_t clipped_coords;

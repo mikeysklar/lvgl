@@ -13,7 +13,10 @@ endchoice
 
 config LV_TXT_BREAK_CHARS
 	string "Characters to break (wrap) text on"
-	default " ,.;:-_)]}"
+	# Zephyr's .config importer can't handle ';' or '[' / ']' in a value, so the
+	# Kconfig default leaves them out. The C fallback in lv_conf_internal.h keeps
+	# the full set for non-Kconfig builds.
+	default " ,.:-_)}"
 
 config LV_TXT_LINE_BREAK_LONG_LEN
 	int "Line break long length"
