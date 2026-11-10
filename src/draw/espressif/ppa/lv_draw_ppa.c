@@ -30,6 +30,12 @@ static int32_t ppa_delete(lv_draw_unit_t * draw_unit);
 static void  ppa_execute_drawing(lv_draw_ppa_unit_t * u);
 
 /**********************
+ *  STATIC VARIABLES
+ **********************/
+
+static lv_draw_ppa_unit_t * ppa_unit;
+
+/**********************
 *   GLOBAL FUNCTIONS
 **********************/
 
@@ -76,11 +82,18 @@ void lv_draw_ppa_init(void)
 
     res = ppa_register_client(&cfg, &draw_ppa_unit->blend_client);
     LV_ASSERT(res == ESP_OK);
+
+    ppa_unit = draw_ppa_unit;
 }
 
 void lv_draw_ppa_deinit(void)
 {
     /* No global deinit required */
+}
+
+ppa_client_handle_t lv_draw_ppa_get_srm_client(void)
+{
+    return ppa_unit ? ppa_unit->srm_client : NULL;
 }
 
 /**********************
@@ -188,6 +201,7 @@ static int32_t ppa_dispatch(lv_draw_unit_t * draw_unit, lv_layer_t * layer)
 static int32_t ppa_delete(lv_draw_unit_t * draw_unit)
 {
     lv_draw_ppa_unit_t * u = (lv_draw_ppa_unit_t *)draw_unit;
+    if(ppa_unit == u) ppa_unit = NULL;
     ppa_unregister_client(u->srm_client);
     ppa_unregister_client(u->fill_client);
     ppa_unregister_client(u->blend_client);
