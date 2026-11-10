@@ -44,9 +44,20 @@ void lv_draw_ppa_fill(lv_draw_task_t * t, const lv_draw_fill_dsc_t * dsc,
 void lv_draw_ppa_img(lv_draw_task_t * t, const lv_draw_image_dsc_t * dsc,
                      const lv_area_t * coords);
 
+lv_result_t lv_draw_ppa_rotate(const void * src, void * dst, int32_t src_width, int32_t src_height,
+                               int32_t src_stride, int32_t dst_stride, lv_rotation_t rotation,
+                               lv_color_format_t cf);
+
 /**********************
  *      MACROS
  **********************/
+
+#define LV_DRAW_ROTATE90_RGB565(src, dst, w, h, src_stride, dst_stride) \
+    lv_draw_ppa_rotate(src, dst, w, h, src_stride, dst_stride, LV_ROTATION_90, LV_COLOR_FORMAT_RGB565)
+#define LV_DRAW_ROTATE180_RGB565(src, dst, w, h, src_stride, dst_stride) \
+    lv_draw_ppa_rotate(src, dst, w, h, src_stride, dst_stride, LV_ROTATION_180, LV_COLOR_FORMAT_RGB565)
+#define LV_DRAW_ROTATE270_RGB565(src, dst, w, h, src_stride, dst_stride) \
+    lv_draw_ppa_rotate(src, dst, w, h, src_stride, dst_stride, LV_ROTATION_270, LV_COLOR_FORMAT_RGB565)
 
 #endif /* LV_USE_PPA */
 
