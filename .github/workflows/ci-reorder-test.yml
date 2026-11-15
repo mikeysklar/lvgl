@@ -1,0 +1,37 @@
+name: CI only - run LVGL tests
+
+on:
+  push:
+    branches: [ ci-reorder-test, ci-baseline-test ]
+
+jobs:
+  test-native:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        build_config: ['64bit build', '32bit build']
+    name: Run tests with ${{ matrix.build_config }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: ammaraskar/gcc-problem-matcher@master
+    - name: Setup Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.12'
+    - name: Install prerequisites
+      run: scripts/install-prerequisites.sh
+    - name: Install pngquant
+      run: scripts/install_pngquant.sh
+    - name: Verify the environment dependency installation
+      run: scripts/run_tests.sh --skip-tests
+    - name: Fix kernel mmap rnd bits
+      # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+      # high-entropy ASLR in much newer kernels that GitHub runners are
+      # using leading to random crashes: https://reviews.llvm.org/D148280
+      run: sudo sysctl vm.mmap_rnd_bits=28
+    - name: Set environment variables for 32-bit build
+      if: matrix.build_config == '32bit build'
+      run: echo "NON_AMD64_BUILD=1" >> $GITHUB_ENV
+    - name: Run tests
+      run: python tests/main.py --report --update-image test --auto-clean --keep-report
